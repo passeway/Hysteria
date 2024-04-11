@@ -74,4 +74,4 @@ IP_COUNTRY=$(curl -s http://ipinfo.io/$HOST_IP/country)
 
 # 输出所需信息，包含IP所在国家
 echo "Hysteria2已安装并启动。"
-echo "$IP_COUNTRY = snell, $HOST_IP, $RANDOM_PORT, psk = $RANDOM_PSK, skip-cert-verify=true, sni=bing.com"
+echo "$IP_COUNTRY = hysteria2, $HOST_IP, $RANDOM_PORT, psk = $RANDOM_PSK, skip-cert-verify=true, sni=bing.com"
