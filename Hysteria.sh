@@ -28,7 +28,7 @@ case $DISTRO in
 esac
 
 # 安装必要的软件包
-function install_dependencies() {
+install_dependencies() {
   echo "正在安装必要的软件包..."
   if ! $PACKAGE_INSTALL unzip wget curl; then
     echo "安装软件包失败"
@@ -37,7 +37,7 @@ function install_dependencies() {
 }
 
 # 安装Hysteria2
-function install_hysteria() {
+install_hysteria() {
   echo "正在一键安装Hysteria2..."
   if ! bash <(curl -fsSL https://get.hy2.sh/); then
     echo "安装Hysteria2失败"
@@ -46,7 +46,7 @@ function install_hysteria() {
 }
 
 # 卸载Hysteria2
-function uninstall_hysteria() {
+uninstall_hysteria() {
   echo "正在卸载Hysteria2..."
   if ! bash <(curl -fsSL https://get.hy2.sh/) --remove; then
     echo "卸载Hysteria2失败"
@@ -55,7 +55,7 @@ function uninstall_hysteria() {
 }
 
 # 生成自签证书
-function generate_certificate() {
+generate_certificate() {
   echo "正在生成自签证书..."
   if ! openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout /etc/hysteria/server.key -out /etc/hysteria/server.crt -subj "/CN=bing.com" -days 36500 && sudo chown hysteria /etc/hysteria/server.key && sudo chown hysteria /etc/hysteria/server.crt; then
     echo "生成自签证书失败"
@@ -64,7 +64,7 @@ function generate_certificate() {
 }
 
 # 随机生成端口和密码，生成配置文件
-function generate_config() {
+generate_config() {
   echo "正在生成配置文件..."
   RANDOM_PORT=$(shuf -i 2000-65000 -n 1)
   RANDOM_PSK=$(openssl rand -base64 12)
@@ -89,7 +89,7 @@ EOF
 }
 
 # 启动Hysteria2服务
-function start_hysteria_service() {
+start_hysteria_service() {
   echo "正在启动Hysteria2服务..."
   if ! systemctl start hysteria-server.service; then
     echo "启动Hysteria2服务失败"
@@ -98,7 +98,7 @@ function start_hysteria_service() {
 }
 
 # 设置Hysteria2服务开机自启
-function enable_hysteria_service() {
+enable_hysteria_service() {
   echo "设置Hysteria2服务开机自启..."
   if ! systemctl enable hysteria-server.service; then
     echo "设置Hysteria2服务开机自启失败"
@@ -107,17 +107,17 @@ function enable_hysteria_service() {
 }
 
 # 获取本机IP地址
-function get_host_ip() {
+get_host_ip() {
   HOST_IP=$(curl -s http://checkip.amazonaws.com)
 }
 
 # 获取IP所在国家
-function get_ip_country() {
+get_ip_country() {
   IP_COUNTRY=$(curl -s http://ipinfo.io/$HOST_IP/country)
 }
 
 # 输出所需信息，包含IP所在国家
-function print_info() {
+print_info() {
   echo "Hysteria2已安装并启动。"
   echo "$IP_COUNTRY = hysteria2, $HOST_IP, $RANDOM_PORT, password = $RANDOM_PSK, skip-cert-verify=true, sni=bing.com"
 }
@@ -140,8 +140,8 @@ case $1 in
     ;;
   *)
     echo "请选择正确的操作："
-    echo "1：安装Hysteria2"
-    echo "2：卸载Hysteria2"
+    echo "选项1：安装Hysteria2"
+    echo "选项2：卸载Hysteria2"
     exit 1
     ;;
 esac
