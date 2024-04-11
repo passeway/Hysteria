@@ -122,8 +122,16 @@ print_info() {
   echo "$IP_COUNTRY = hysteria2, $HOST_IP, $RANDOM_PORT, password = $RANDOM_PSK, skip-cert-verify=true, sni=bing.com"
 }
 
+# 检查参数是否正确
+if [ $# -ne 1 ]; then
+  echo "请提供正确的参数："
+  echo "选项1：安装Hysteria2"
+  echo "选项2：卸载Hysteria2"
+  exit 1
+fi
+
 # 根据用户选择的操作执行相应的函数
-case $1 in
+case "$1" in
   "install")
     install_dependencies
     install_hysteria
