@@ -2,9 +2,9 @@
 #!/bin/bash
 
 install_hysteria2() {
-    curl -sS -o Hysteria1.sh https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria1.sh &&
-    chmod +x Hysteria1.sh &&
-    ./Hysteria1.sh
+    curl -sS -o Hysteria2.sh https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria2.sh &&
+    chmod +x Hysteria2.sh &&
+    ./Hysteria2.sh
 }
 
 uninstall_hysteria2() {
