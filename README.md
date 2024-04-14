@@ -11,6 +11,7 @@
 ```bash
 curl -sS -o Hysteria.sh https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria.sh  && chmod +x Hysteria.sh && ./Hysteria.sh
 ```
-
+# 详细说明
+- 使用官方版内核脚本搭建 Hysteria2。
 - 安装完成后自动输出客户端Surge&yaml配置。
 
