@@ -9,7 +9,7 @@
 ## 一键脚本
 
 ```bash
-curl -sS -o Hysteria.sh https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria.sh  && chmod +x Hysteria.sh && ./Hysteria.sh
+bash <(curl -Ls https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria.sh)
 ```
 # 详细说明
 - 使用官方版内核搭建 Hysteria2。
