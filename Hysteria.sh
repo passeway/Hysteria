@@ -14,7 +14,7 @@ uninstall_hysteria2() {
 echo "请选择操作："
 echo "1. 安装 Hysteria2"
 echo "2. 卸载 Hysteria2"
-read -p "输入选项: " choice
+read -p "请输入选项编号: " choice
 
 
 case $choice in
