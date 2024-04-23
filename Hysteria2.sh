@@ -75,6 +75,7 @@ IP_COUNTRY=$(curl -s http://ipinfo.io/$HOST_IP/country)
 
 # 输出所需信息，包含IP所在国家
 echo "Hysteria2已安装并启动,卸载请执行 bash <(curl -fsSL https://get.hy2.sh/) --remove"
+echo "hysteria2://${RANDOM_PSK}@${HOST_IP}:${RANDOM_PORT}?sni=www.bing.com&insecure=1#$IP_COUNTRY"
 echo "$IP_COUNTRY = hysteria2, $HOST_IP, $RANDOM_PORT, password = $RANDOM_PSK, skip-cert-verify=true, sni=www.bing.com"
 cat << EOF
 - name: $IP_COUNTRY
