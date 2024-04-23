@@ -63,6 +63,7 @@ EOF
 
 # 启动Hysteria2
 systemctl start hysteria-server.service
+systemctl restart hysteria-server.service
 
 # 设置开机自启
 systemctl enable hysteria-server.service
