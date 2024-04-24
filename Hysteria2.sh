@@ -75,10 +75,10 @@ HOST_IP=$(curl -s http://checkip.amazonaws.com)
 IP_COUNTRY=$(curl -s http://ipinfo.io/$HOST_IP/country)
 
 # 输出所需信息，包含IP所在国家
-echo "Hysteria2已安装并启动,卸载请执行 bash <(curl -fsSL https://get.hy2.sh/) --remove"
-echo "Surge配置请复制内容"
+echo "Hysteria2 安装成功"
+echo "Surge"
 echo "$IP_COUNTRY = hysteria2, $HOST_IP, $RANDOM_PORT, password = $RANDOM_PSK, skip-cert-verify=true, sni=www.bing.com"
-echo "Clash配置请复制内容"
+echo "Clash"
 cat << EOF
 - name: $IP_COUNTRY
   type: hysteria2
