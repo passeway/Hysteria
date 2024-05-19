@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # 检查是否以 root 用户身份运行
@@ -29,7 +28,7 @@ case $DISTRO in
 esac
 
 # 安装必要的软件包
-$PACKAGE_INSTALL unzip wget curl
+${PACKAGE_INSTALL} unzip wget curl
 
 # 一键安装Hysteria2
 bash <(curl -fsSL https://get.hy2.sh/)
@@ -43,21 +42,20 @@ RANDOM_PSK=$(openssl rand -base64 12)
 
 # 生成配置文件
 cat << EOF > /etc/hysteria/config.yaml
-listen: :$RANDOM_PORT # 监听随机端口
+listen: :${RANDOM_PORT} 
 
-# 使用自签证书
 tls:
   cert: /etc/hysteria/server.crt
   key: /etc/hysteria/server.key
 
 auth:
   type: password
-  password: "$RANDOM_PSK" # 设置随机密码
+  password: "${RANDOM_PSK}" 
   
 masquerade:
   type: proxy
   proxy:
-    url: https://bing.com # 伪装网址
+    url: https://bing.com 
     rewriteHost: true
 EOF
 
@@ -72,22 +70,21 @@ systemctl enable hysteria-server.service
 HOST_IP=$(curl -s http://checkip.amazonaws.com)
 
 # 获取IP所在国家
-IP_COUNTRY=$(curl -s http://ipinfo.io/$HOST_IP/country)
+IP_COUNTRY=$(curl -s http://ipinfo.io/${HOST_IP}/country)
 
-# 输出所需信息，包含IP所在国家
+# 输出客户端配置信息
 echo "Hysteria2 安装成功"
-echo "Surge"
-echo "$IP_COUNTRY = hysteria2, $HOST_IP, $RANDOM_PORT, password = $RANDOM_PSK, skip-cert-verify=true, sni=www.bing.com"
-echo "Clash"
 cat << EOF
-- name: $IP_COUNTRY
+- name: ${IP_COUNTRY}
   type: hysteria2
-  server: $HOST_IP
-  port: $RANDOM_PORT
-  password: $RANDOM_PSK
+  server: ${HOST_IP}
+  port: ${RANDOM_PORT}
+  password: ${RANDOM_PSK}
   alpn:
     - h3
   sni: www.bing.com
   skip-cert-verify: true
   fast-open: true
 EOF
+echo "hy2://${RANDOM_PSK}@${HOST_IP}:${RANDOM_PORT}?insecure=1&sni=www.bing.com#${IP_COUNTRY}"
+echo "${IP_COUNTRY} = hysteria2, ${HOST_IP}, ${RANDOM_PORT}, password = ${RANDOM_PSK}, skip-cert-verify=true, sni=www.bing.com"
