@@ -21,7 +21,7 @@ check_hysteria_status() {
 # 安装 Hysteria
 install_hysteria() {
     echo -e "${CYAN}正在安装 Hysteria${RESET}"
-    curl -sS -o Hysteria.sh https://gitlab.com/passeway/Hysteria/-/raw/main/Hysteria2.sh &&
+    curl -sS -o Hysteria2.sh https://gitlab.com/passeway/Hysteria/-/raw/main/Hysteria2.sh &&
     chmod +x Hysteria2.sh &&
     ./Hysteria2.sh
     if [ $? -eq 0 ]; then
