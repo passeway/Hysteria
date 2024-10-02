@@ -6,7 +6,7 @@
 ## 一键脚本
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/passeway/Hysteria/main/Hysteria.sh)
 ```
 
 ## 详细说明
