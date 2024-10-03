@@ -1,136 +1,218 @@
 #!/bin/bash
 
-# 检查是否以 root 用户身份运行
-if [ "$EUID" -ne 0 ]; then
-  echo "请以 root 用户身份运行此脚本"
-  exit 1
-fi
+# 定义颜色代码
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
 
-# 判断系统及定义系统安装依赖方式
-DISTRO=$(cat /etc/os-release | grep '^ID=' | awk -F '=' '{print $2}' | tr -d '"')
-case $DISTRO in
-  "debian"|"ubuntu")
-    PACKAGE_UPDATE="apt-get update"
-    PACKAGE_INSTALL="apt-get install -y"
-    PACKAGE_REMOVE="apt-get remove -y"
-    PACKAGE_UNINSTALL="apt-get autoremove -y"
-    ;;
-  "centos"|"fedora"|"rhel")
-    PACKAGE_UPDATE="yum -y update"
-    PACKAGE_INSTALL="yum -y install"
-    PACKAGE_REMOVE="yum -y remove"
-    PACKAGE_UNINSTALL="yum -y autoremove"
-    ;;
-  *)
-    echo "不支持的 Linux 发行版"
-    exit 1
-    ;;
-esac
-
-# 安装必要的软件包
-${PACKAGE_INSTALL} unzip wget curl
-
-# 一键安装Hysteria2
-bash <(curl -fsSL https://get.hy2.sh/)
-
-# 生成自签证书
-openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout /etc/hysteria/server.key -out /etc/hysteria/server.crt -subj "/CN=bing.com" -days 36500 && sudo chown hysteria /etc/hysteria/server.key && sudo chown hysteria /etc/hysteria/server.crt
-
-# 生成随机端口号并检查端口是否被占用
-while true; do
-    RANDOM_PORT=$(shuf -i 50000-55000 -n 1)
-    if ! lsof -i:$RANDOM_PORT > /dev/null; then
-        echo "Selected port: $RANDOM_PORT"
-        break
-    else
-        echo "Port $RANDOM_PORT is in use, selecting a new one."
+LOG_FILE="/var/log/hysteria_manager.log"
+SERVICE_NAME="hysteria-server.service"  
+CONFIG_FILE="/etc/hysteria/config.txt"  
+# 检查是否以 root 用户运行
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${RED}此脚本必须以 root 用户运行${RESET}"
+        exit 1
     fi
-done
+}
 
-# 生成随机密码
-RANDOM_PSK=$(openssl rand -base64 12)
+# 检查 Hysteria 是否安装
+check_hysteria_installed() {
+    if command -v hysteria &> /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
 
-# 获取服务器证书的 SHA256 指纹
-SHA256=$(openssl x509 -in /etc/hysteria/server.crt -noout -fingerprint -sha256 | cut -d'=' -f2)
-echo $SHA256
+# 检查 Hysteria 是否正在运行
+check_hysteria_running() {
+    systemctl is-active --quiet "$SERVICE_NAME"
+    return $?
+}
 
-# 生成配置文件
-cat << EOF > /etc/hysteria/config.yaml
-listen: :${RANDOM_PORT} 
+# 安装 Hysteria
+install_hysteria() {
+    echo -e "${CYAN}正在安装 Hysteria${RESET}"
+    
+    # 下载安装脚本
+    curl -sS -o Hysteria2.sh https://gitlab.com/passeway/Hysteria/-/raw/main/Hysteria2.sh
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}下载安装脚本失败${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 下载安装脚本失败" >> "$LOG_FILE"
+        return 1
+    fi
 
-tls:
-  cert: /etc/hysteria/server.crt
-  key: /etc/hysteria/server.key
+    chmod +x Hysteria2.sh
+    ./Hysteria2.sh
 
-auth:
-  type: password
-  password: "${RANDOM_PSK}" 
-  
-masquerade:
-  type: proxy
-  proxy:
-    url: https://bing.com 
-    rewriteHost: true
-EOF
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Hysteria 安装成功${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 安装成功" >> "$LOG_FILE"
+    else
+        echo -e "${RED}Hysteria 安装失败${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 安装失败" >> "$LOG_FILE"
+        return 1
+    fi
+}
 
-# 启动Hysteria2
-systemctl start hysteria-server.service
-systemctl restart hysteria-server.service
+# 卸载 Hysteria
+uninstall_hysteria() {
+    echo -e "${CYAN}正在卸载 Hysteria${RESET}"
+    
+    # 执行卸载脚本
+    bash <(curl -fsSL https://get.hy2.sh/) --remove
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}卸载脚本执行失败${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 卸载脚本执行失败" >> "$LOG_FILE"
+        return 1
+    fi
 
-# 设置开机自启
-systemctl enable hysteria-server.service
+    # 清除 iptables 规则
+    iptables -t nat -F && iptables -t nat -X
+    ip6tables -t nat -F && ip6tables -t nat -X
 
-# 获取本机IP地址
-HOST_IP=$(curl -s http://checkip.amazonaws.com)
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Hysteria 卸载成功${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 卸载成功" >> "$LOG_FILE"
+    else
+        echo -e "${RED}Hysteria 卸载失败${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 卸载失败" >> "$LOG_FILE"
+        return 1
+    fi
+}
 
-# 获取IP所在国家
-IP_COUNTRY=$(curl -s http://ipinfo.io/${HOST_IP}/country)
+# 启动 Hysteria
+start_hysteria() {
+    echo -e "${CYAN}正在启动 Hysteria${RESET}"
+    systemctl start "$SERVICE_NAME"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Hysteria 启动成功${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 启动成功" >> "$LOG_FILE"
+    else
+        echo -e "${RED}Hysteria 启动失败${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 启动失败" >> "$LOG_FILE"
+    fi
+}
 
-# 安装 iptables-persistent
-${PACKAGE_INSTALL} iptables-persistent
+# 停止 Hysteria
+stop_hysteria() {
+    echo -e "${CYAN}正在停止 Hysteria${RESET}"
+    systemctl stop "$SERVICE_NAME"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Hysteria 停止成功${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 停止成功" >> "$LOG_FILE"
+    else
+        echo -e "${RED}Hysteria 停止失败${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Hysteria 停止失败" >> "$LOG_FILE"
+    fi
+}
 
-# 端口跳跃设置：将50000-55000范围的UDP流量重定向到随机生成的端口
-iptables -t nat -A PREROUTING -p udp --dport 50000:55000 -j DNAT --to-destination :${RANDOM_PORT}
-ip6tables -t nat -A PREROUTING -p udp --dport 50000:55000 -j DNAT --to-destination :${RANDOM_PORT}
+# 查看 Hysteria 配置文件
+view_hysteria_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        echo -e "${CYAN}Hysteria 配置文件内容:${RESET}"
+        cat "$CONFIG_FILE"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 查看配置文件" >> "$LOG_FILE"
+    else
+        echo -e "${RED}未找到配置文件: $CONFIG_FILE${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 未找到配置文件: $CONFIG_FILE" >> "$LOG_FILE"
+    fi
+}
 
-# 保存 iptables 规则
-netfilter-persistent save
+# 显示菜单
+show_menu() {
+    clear
+    check_hysteria_installed
+    hysteria_installed=$?
+    
+    if [ $hysteria_installed -eq 0 ]; then
+        check_hysteria_running
+        hysteria_running=$?
+        if [ $hysteria_running -eq 0 ]; then
+            hysteria_status="${GREEN}已启动${RESET}"
+        else
+            hysteria_status="${RED}未启动${RESET}"
+        fi
+        installation_status="${GREEN}已安装${RESET}"
+    else
+        installation_status="${RED}未安装${RESET}"
+        hysteria_status="${RED}未启动${RESET}"
+    fi
 
+    echo -e "${GREEN}=== Hysteria 管理工具 ===${RESET}"
+    echo -e "安装状态: ${installation_status}"
+    if [ $hysteria_installed -eq 0 ]; then
+        echo -e "运行状态: ${hysteria_status}"
+    fi
+    echo ""
+    echo "1. 安装 Hysteria2"
+    echo "2. 卸载 Hysteria2"
+    echo "3. 启动 Hysteria2"
+    echo "4. 停止 Hysteria2"
+    echo "5. 查看 Hysteria2"
+    echo "0. 退出"
+    echo -e "${GREEN}=========================${RESET}"
+    read -p "请输入选项编号: " choice
+    echo ""
+}
 
-# 生成客户端配置信息
-cat << EOF > /etc/hysteria/config.txt
-- name: ${IP_COUNTRY}
-  type: hysteria2
-  server: ${HOST_IP}
-  port: ${RANDOM_PORT}
-  password: ${RANDOM_PSK}
-  alpn:
-    - h3
-  sni: www.bing.com
-  skip-cert-verify: true
-  fast-open: true
+# 捕获 Ctrl+C 信号
+trap 'echo -e "${RED}已取消操作${RESET}"; exit' INT
 
-hy2://${RANDOM_PSK}@${HOST_IP}:${RANDOM_PORT}?insecure=1&sni=www.bing.com#${IP_COUNTRY}
+# 主循环
+main() {
+    check_root
 
-${IP_COUNTRY} = hysteria2, ${HOST_IP}, ${RANDOM_PORT}, password = ${RANDOM_PSK}, skip-cert-verify=true, sni=www.bing.com,  server-cert-fingerprint-sha256=${SHA256}, port-hopping=50000-55000, port-hopping-interval=30
-EOF
+    while true; do
+        show_menu
+        case "$choice" in
+            1)
+                install_hysteria
+                ;;
+            2)
+                if [ $hysteria_installed -eq 0 ]; then
+                    uninstall_hysteria
+                else
+                    echo -e "${RED}Hysteria 尚未安装${RESET}"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 尝试卸载但 Hysteria 尚未安装" >> "$LOG_FILE"
+                fi
+                ;;
+            3)
+                if [ $hysteria_installed -eq 0 ]; then
+                    start_hysteria
+                else
+                    echo -e "${RED}Hysteria 尚未安装${RESET}"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 尝试启动但 Hysteria 尚未安装" >> "$LOG_FILE"
+                fi
+                ;;
+            4)
+                if [ $hysteria_installed -eq 0 ]; then
+                    stop_hysteria
+                else
+                    echo -e "${RED}Hysteria 尚未安装${RESET}"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 尝试停止但 Hysteria 尚未安装" >> "$LOG_FILE"
+                fi
+                ;;
+            5)
+                view_hysteria_config
+                ;;
+            0)
+                echo -e "${GREEN}已退出 Hysteria 管理工具${RESET}"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 用户退出管理工具" >> "$LOG_FILE"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}无效的选项${RESET}"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 用户输入无效选项" >> "$LOG_FILE"
+                ;;
+        esac
+        read -p "按任意键返回菜单..."
+    done
+}
 
-
-# 输出客户端配置信息
-echo "Hysteria2 安装成功"
-cat << EOF
-- name: ${IP_COUNTRY}
-  type: hysteria2
-  server: ${HOST_IP}
-  port: ${RANDOM_PORT}
-  password: ${RANDOM_PSK}
-  alpn:
-    - h3
-  sni: www.bing.com
-  skip-cert-verify: true
-  fast-open: true
-EOF
-echo
-echo "hy2://${RANDOM_PSK}@${HOST_IP}:${RANDOM_PORT}?insecure=1&sni=www.bing.com#${IP_COUNTRY}"
-echo
-echo "${IP_COUNTRY} = hysteria2, ${HOST_IP}, ${RANDOM_PORT}, password = ${RANDOM_PSK}, skip-cert-verify=true, sni=www.bing.com,  server-cert-fingerprint-sha256=${SHA256}, port-hopping=50000-55000, port-hopping-interval=30"
+main
