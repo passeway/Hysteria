@@ -97,6 +97,24 @@ ip6tables -t nat -A PREROUTING -p udp --dport 50000:55000 -j DNAT --to-destinati
 netfilter-persistent save
 
 
+# 生成客户端配置信息
+cat << EOF > /etc/hysteria/config.txt
+- name: ${IP_COUNTRY}
+  type: hysteria2
+  server: ${HOST_IP}
+  port: ${RANDOM_PORT}
+  password: ${RANDOM_PSK}
+  alpn:
+    - h3
+  sni: www.bing.com
+  skip-cert-verify: true
+  fast-open: true
+
+hy2://${RANDOM_PSK}@${HOST_IP}:${RANDOM_PORT}?insecure=1&sni=www.bing.com#${IP_COUNTRY}
+
+${IP_COUNTRY} = hysteria2, ${HOST_IP}, ${RANDOM_PORT}, password = ${RANDOM_PSK}, skip-cert-verify=true, sni=www.bing.com,  server-cert-fingerprint-sha256=${SHA256}, port-hopping=50000-55000, port-hopping-interval=30
+EOF
+
 
 # 输出客户端配置信息
 echo "Hysteria2 安装成功"
