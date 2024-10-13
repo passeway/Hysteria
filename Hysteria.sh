@@ -10,8 +10,8 @@ CYAN='\033[0;36m'
 RESET='\033[0m'
 
 LOG_FILE="/var/log/hysteria_manager.log"
-SERVICE_NAME="hysteria-server.service"  # 更新为实际的服务名称
-
+SERVICE_NAME="hysteria-server.service"  
+CONFIG_FILE="/etc/hysteria/config.txt"  
 # 检查是否以 root 用户运行
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -46,16 +46,6 @@ install_hysteria() {
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 下载安装脚本失败" >> "$LOG_FILE"
         return 1
     fi
-
-    # 添加 SHA256 校验（请确保替换为实际的校验和）
-    # expected_sha256="替换为实际的SHA256校验和"
-    # echo "${expected_sha256}  Hysteria2.sh" | sha256sum -c -
-    # if [ $? -ne 0 ]; then
-    #     echo -e "${RED}脚本校验失败，安装终止${RESET}"
-    #     echo "$(date '+%Y-%m-%d %H:%M:%S') - 脚本校验失败，安装终止" >> "$LOG_FILE"
-    #     rm -f Hysteria2.sh
-    #     return 1
-    # fi
 
     chmod +x Hysteria2.sh
     ./Hysteria2.sh
@@ -122,6 +112,18 @@ stop_hysteria() {
     fi
 }
 
+# 查看 Hysteria 配置文件
+view_hysteria_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        echo -e "${CYAN}Hysteria 配置文件内容:${RESET}"
+        cat "$CONFIG_FILE"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 查看配置文件" >> "$LOG_FILE"
+    else
+        echo -e "${RED}未找到配置文件: $CONFIG_FILE${RESET}"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 未找到配置文件: $CONFIG_FILE" >> "$LOG_FILE"
+    fi
+}
+
 # 显示菜单
 show_menu() {
     clear
@@ -136,7 +138,7 @@ show_menu() {
         else
             hysteria_status="${RED}未启动${RESET}"
         fi
-            installation_status="${GREEN}已安装${RESET}"
+        installation_status="${GREEN}已安装${RESET}"
     else
         installation_status="${RED}未安装${RESET}"
         hysteria_status="${RED}未启动${RESET}"
@@ -148,10 +150,11 @@ show_menu() {
         echo -e "运行状态: ${hysteria_status}"
     fi
     echo ""
-    echo "1. 安装 Hysteria2"
-    echo "2. 卸载 Hysteria2"
-    echo "3. 启动 Hysteria2"
-    echo "4. 停止 Hysteria2"
+    echo "1. 安装 Hysteria2 服务"
+    echo "2. 卸载 Hysteria2 服务"
+    echo "3. 启动 Hysteria2 服务"
+    echo "4. 停止 Hysteria2 服务"
+    echo "5. 查看 Hysteria2 配置"
     echo "0. 退出"
     echo -e "${GREEN}=========================${RESET}"
     read -p "请输入选项编号: " choice
@@ -195,6 +198,9 @@ main() {
                     echo "$(date '+%Y-%m-%d %H:%M:%S') - 尝试停止但 Hysteria 尚未安装" >> "$LOG_FILE"
                 fi
                 ;;
+            5)
+                view_hysteria_config
+                ;;
             0)
                 echo -e "${GREEN}已退出 Hysteria 管理工具${RESET}"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 用户退出管理工具" >> "$LOG_FILE"
@@ -202,12 +208,11 @@ main() {
                 ;;
             *)
                 echo -e "${RED}无效的选项${RESET}"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 用户输入无效选项: $choice" >> "$LOG_FILE"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 用户输入无效选项" >> "$LOG_FILE"
                 ;;
         esac
-        read -p "按 enter 键继续..."
+        read -p "按任意键返回菜单..."
     done
 }
 
-# 执行主函数
 main
