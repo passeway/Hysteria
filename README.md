@@ -5,7 +5,7 @@
 
 ## 一键脚本
 ```
-bash <(curl -fsSL https://gitlab.com/passeway/Hysteria/raw/main/Hysteria.sh)
+bash <(curl -fsSL hysteria-inky.vercel.app)
 ```
 
 ## 详细说明
