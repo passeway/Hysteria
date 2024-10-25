@@ -5,7 +5,7 @@
 
 ## 一键脚本
 ```
-bash <(curl -fsSL hysteria-inky.vercel.app)
+bash <(curl -fsSL hysteria-eight.vercel.app)
 ```
 
 ## 详细说明
