@@ -40,15 +40,13 @@ install_hysteria() {
     echo -e "${CYAN}正在安装 Hysteria${RESET}"
     
     # 下载安装脚本
-    curl -sS -o Hysteria2.sh https://gitlab.com/passeway/Hysteria/-/raw/main/Hysteria2.sh
+    bash <(curl -fsSL https://raw.githubusercontent.com/passeway/Hysteria/refs/heads/main/Hysteria2.sh)
     if [ $? -ne 0 ]; then
         echo -e "${RED}下载安装脚本失败${RESET}"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 下载安装脚本失败" >> "$LOG_FILE"
         return 1
     fi
 
-    chmod +x Hysteria2.sh
-    ./Hysteria2.sh
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Hysteria 安装成功${RESET}"
